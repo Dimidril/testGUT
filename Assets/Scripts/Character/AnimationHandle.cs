@@ -8,22 +8,15 @@ public class AnimationHandle : MonoBehaviour
 {
     [SerializeField] private SkeletonAnimation _skeletonAnimation;
     [SerializeField] private PlayerMover _playerMover;
+    [SerializeField] private CharacterStateMashine _characterStateMashine;
 
     private void Start()
     {
         _skeletonAnimation.AnimationState.SetAnimation(0, "portal", false);
         _skeletonAnimation.AnimationState.GetCurrent(0).Complete += entry => _skeletonAnimation.AnimationState.SetAnimation(0, "idle", false);
-        
-        _playerMover.OnStateChange.AddListener(OnCharacterStateChange);
-        
-        /*_playerMover.OnMove.AddListener(() =>
-        {
-            _skeletonAnimation.AnimationState.SetAnimation(0, "run", true);
-        });
-        _playerMover.OnStop.AddListener(() =>
-        {
-            _skeletonAnimation.AnimationState.SetAnimation(0, "idle", true);
-        });*/
+
+        _characterStateMashine.OnStateChange.AddListener(OnCharacterStateChange);
+
         _playerMover.OnDirectionChanged.AddListener(SetFlip);
     }
     
@@ -33,20 +26,21 @@ public class AnimationHandle : MonoBehaviour
         }
     }
 
-    private void OnCharacterStateChange(CharacterState newState)
+    private void OnCharacterStateChange(State newState)
     {
-        switch (newState)
+        Type stateType = newState.GetType();
+
+        if (stateType == typeof(IdleState))
         {
-            case CharacterState.Idle:
-                SetAnimation("idle", true);
-                break;
-            case CharacterState.Run: 
-                SetAnimation("run", true);
-                break;
-            case CharacterState.Sliding:
-                SetAnimation("hoverboard", true);
-                break;
+            SetAnimation("idle", true);
         }
+        else if(stateType == typeof(MoveState))
+        {
+            SetAnimation("run", true);
+        }
+        else if(stateType == typeof(SlidingState))
+            SetAnimation("hoverboard", true);
+        
     }
 
     private void SetAnimation(string name, bool isLoop)
