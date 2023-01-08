@@ -1,70 +1,87 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-[RequireComponent(typeof(CharacterController))]
-public class PlayerMover : MonoBehaviour
+namespace Character
 {
-    [SerializeField] private CharacterController _characterController;
-    [SerializeField] private float _moveSpeed;
-    
-    private PlayerInput PlayerInput;
-    private bool _isCanFlip = true;
-
-    public float Direction { get; private set; }
-    public float SurfaceAngle { get; private set; }
-
-    
-    public UnityEvent<float> OnDirectionChanged;
-    
-
-    private void OnValidate()
+    public class PlayerMover : MonoBehaviour
     {
-        _characterController = GetComponent<CharacterController>();
-    }
+        [SerializeField] private CapsuleCollider _collider;
+        [SerializeField] private Rigidbody _rigidbody;
+        [SerializeField] private float _rayToGroundLenght = 0.33f;
 
-    private void Awake()
-    {
-        PlayerInput = new PlayerInput();
-        PlayerInput.Enable();
-    }
+        private PlayerInput _playerInput;
+        private bool _isCanFlip = true;
 
-    private void Update()
-    {
-        float newDirection = PlayerInput.Move.Move.ReadValue<float>();
+        public float Direction { get; private set; }
 
-        if (newDirection != Direction)
+        public UnityEvent<float> OnDirectionChanged;
+        public UnityEvent OnJumpPressed;
+
+        private void OnDrawGizmos()
         {
-            Direction = newDirection;
-            if(_isCanFlip)
-                OnDirectionChanged?.Invoke(Direction);
+            Debug.DrawRay(transform.position, Vector3.down * _rayToGroundLenght, Color.red);
         }
 
-        SurfaceAngle = SlidingAngle();
-    }
-
-
-    private float SlidingAngle()
-    {
-        var ray = new Ray(transform.position, Vector3.down);
-        float slopeRotation = 0;
-
-        if (Physics.Raycast(ray, out RaycastHit hit, _characterController.height))
+        private void OnValidate()
         {
-            Debug.DrawLine(transform.position, hit.normal);
-            slopeRotation = -Vector3.SignedAngle(transform.up, hit.normal, Vector3.forward);
+            _collider = GetComponent<CapsuleCollider>();
         }
+
+        private void Awake()
+        {
+            _playerInput = new PlayerInput();
+            _playerInput.Enable();
+
+            _playerInput.Move.Jump.performed += context => OnJumpPressed?.Invoke();
+        }
+
+        private void Update()
+        {
+            float newDirection = _playerInput.Move.Move.ReadValue<float>();
+
+            if (newDirection != Direction)
+            {
+                Direction = newDirection;
+                if(_isCanFlip)
+                    OnDirectionChanged?.Invoke(Direction);
+            }
+        }
+
+        public float SlidingAngle()
+        {
+            var ray = new Ray(transform.position, Vector3.down);
+            float slopeRotation = 0;
+
+            if (Physics.Raycast(ray, out RaycastHit hit, _rayToGroundLenght))
+            {
+                slopeRotation = -Vector3.SignedAngle(transform.up, hit.normal, Vector3.forward);
+            }
         
-        return slopeRotation;
-    }
+            return slopeRotation;
+        }
 
-    public void Move(Vector3 velosity)
-    {
-        velosity.y = -9.8f;
-        _characterController.Move(velosity * Time.deltaTime);
-    }
+        public bool IsGrounded()
+        {
+            var ray = new Ray(transform.position, Vector3.down);
 
-    internal void SetCanFlip(bool value)
-    {
-        _isCanFlip = value;
+            return Physics.Raycast(ray, out RaycastHit hit, _rayToGroundLenght);
+        }
+
+        public void Move(Vector3 velocity)
+        {
+            _rigidbody.MovePosition(transform.position + velocity * Time.deltaTime);
+        }
+
+        public void Jump(float force)
+        {
+            _rigidbody.AddForce(Vector2.up * force);
+        }
+
+        internal void SetCanFlip(bool value)
+        {
+            _isCanFlip = value;
+        }
     }
 }

@@ -1,9 +1,11 @@
+using Character.StateMachine;
+using Character.StateMachine.States;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]
 public class Cube : MonoBehaviour
 {
-    [SerializeField] private CharacterStateMashine _characterStateMashine;
+    [SerializeField] private CharacterStateMachine _characterStateMachine;
 
     private MeshRenderer _meshRenderer;
 
@@ -11,7 +13,7 @@ public class Cube : MonoBehaviour
     {
         _meshRenderer = GetComponent<MeshRenderer>();
 
-        _characterStateMashine.OnStateChange.AddListener(state => {
+        _characterStateMachine.OnStateChange.AddListener(state => {
             if(state.GetType() == typeof(SlidingState))
             {
                 _meshRenderer.material.color = Color.red;
